@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Erangel Strike | Battleground</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100%;overflow:hidden;background:#0b0f14;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#fff;user-select:none}
+  canvas{display:block}
+  #ui{position:fixed;inset:0;pointer-events:none;z-index:10}
+  #crosshair{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;opacity:.9}
+  #crosshair:before,#crosshair:after{content:"";position:absolute;background:#fff;box-shadow:0 0 2px #000}
+  #crosshair:before{left:50%;top:0;width:2px;height:100%;margin-left:-1px}
+  #crosshair:after{top:50%;left:0;height:2px;width:100%;margin-top:-1px}
+  #crosshair.hit:before,#crosshair.hit:after{background:#ff3b3b}
+  #hitmarker{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;opacity:0;transition:opacity .12s}
+  #hitmarker:before,#hitmarker:after{content:"";position:absolute;width:12px;height:2px;background:#fff;left:9px;top:14px}
+  #hitmarker:before{transform:rotate(45deg)}
+  #hitmarker:after{transform:rotate(-45deg)}
+  #hitmarker.on{opacity:1}
+  #minimap{position:absolute;top:14px;right:14px;width:172px;height:172px;border:2px solid rgba(255,255,255,.35);border-radius:8px;background:rgba(10,20,15,.55);overflow:hidden;backdrop-filter:blur(3px)}
+  #minimap canvas{width:100%;height:100%}
+  #alive{position:absolute;top:192px;right:14px;background:rgba(0,0,0,.5);padding:6px 12px;border-radius:6px;font-size:13px;font-weight:700;letter-spacing:.5px;border:1px solid rgba(255,255,255,.15)}
+  #teamBadge{position:absolute;top:224px;right:14px;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:1.5px;border:1px solid rgba(255,255,255,.2)}
+  #killfeed{position:absolute;top:14px;left:14px;display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600}
+  #killfeed div{background:rgba(0,0,0,.55);padding:4px 10px;border-radius:4px;border-left:3px solid #ffd54a;animation:fadein .2s}
+  @keyframes fadein{from{opacity:0;transform:translateX(-8px)}to{opacity:1}}
+  #pickupToast{position:absolute;left:50%;bottom:180px;transform:translateX(-50%);display:flex;flex-direction:column;gap:4px;align-items:center;pointer-events:none}
+  #pickupToast div{background:rgba(0,0,0,.7);padding:5px 14px;border-radius:5px;font-size:12px;font-weight:800;letter-spacing:1.5px;animation:rise .3s ease-out}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  #bottom{position:absolute;left:0;right:0;bottom:0;padding:0 16px 16px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+  #hpwrap{flex:1;max-width:520px}
+  #hpbar{height:14px;background:rgba(0,0,0,.6);border:2px solid rgba(255,255,255,.3);border-radius:3px;overflow:hidden}
+  #hpfill{height:100%;width:100%;background:linear-gradient(90deg,#43d17a,#7fe6a5);transition:width .15s}
+  #hpfill.low{background:linear-gradient(90deg,#d14343,#ff7a7a)}
+  #hptext{font-size:11px;opacity:.75;margin-top:3px;letter-spacing:1px}
+  #ammo{text-align:right;font-variant-numeric:tabular-nums;text-shadow:0 2px 6px #000}
+  #ammo .mag{font-size:34px;font-weight:800;line-height:1}
+  #ammo .res{font-size:15px;opacity:.7}
+  #ammo .wname{font-size:12px;letter-spacing:2px;opacity:.85;margin-bottom:2px}
+  #slots{display:flex;gap:6px;justify-content:flex-end;margin-top:6px;font-size:11px}
+  #slots .s{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:2px 8px;opacity:.55}
+  #slots .s.on{opacity:1;border-color:#ffd54a}
+  #zone{position:absolute;top:14px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.5);padding:6px 16px;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:1px;border:1px solid rgba(255,255,255,.15);text-align:center}
+  #zone .t{color:#6ec9ff}
+  #msg{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);font-size:26px;font-weight:800;text-align:center;text-shadow:0 4px 16px #000;letter-spacing:1px;opacity:0;transition:opacity .3s}
+  #msg.on{opacity:1}
+  #msg small{display:block;font-size:14px;font-weight:600;opacity:.8;margin-top:6px;letter-spacing:2px}
+  #vig{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 140px 30px rgba(200,0,0,0);transition:box-shadow .12s}
+  #prompt{position:absolute;left:50%;top:58%;transform:translateX(-50%);background:rgba(0,0,0,.65);padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;opacity:0;transition:opacity .15s;border:1px solid rgba(255,255,255,.3);pointer-events:none;cursor:pointer}
+  #prompt.on{opacity:1;pointer-events:auto}
+  #scope{position:absolute;inset:0;opacity:0;transition:opacity .1s;pointer-events:none;background:radial-gradient(circle at 50% 50%,transparent 29%,#000 31%);z-index:9}
+  #scope.on{opacity:1}
+  #scope::before{content:"";position:absolute;left:32%;right:32%;top:50%;height:2px;margin-top:-1px;background:rgba(0,0,0,.95);box-shadow:0 0 0 1px rgba(255,255,255,.15)}
+  #scope::after{content:"";position:absolute;top:32%;bottom:32%;left:50%;width:2px;margin-left:-1px;background:rgba(0,0,0,.95);box-shadow:0 0 0 1px rgba(255,255,255,.15)}
+  #hudTopLeft{position:absolute;top:14px;left:14px;display:flex;gap:8px;z-index:15;pointer-events:auto;flex-direction:column;align-items:flex-start}
+  .utilBtn{width:40px;height:40px;border-radius:8px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;cursor:pointer;transition:.15s;pointer-events:auto}
+  .utilBtn:active{transform:scale(.94);background:rgba(255,255,255,.18)}
+  .utilBtn svg{width:20px;height:20px;fill:currentColor}
+  .utilBtn.active{border-color:#ffd54a;color:#ffd54a;background:rgba(255,213,74,.15)}
+  #pauseScreen{position:fixed;inset:0;z-index:45;background:rgba(3,6,10,.78);display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+  #pauseScreen.on{display:flex}
+  .pauseInner{text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center}
+  .pauseInner h2{font-size:44px;letter-spacing:14px;font-weight:900;background:linear-gradient(90deg,#ffd54a,#ff7a3d);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .pauseInner button{padding:14px 52px;font-size:16px;font-weight:800;letter-spacing:3px;border:none;border-radius:6px;background:linear-gradient(90deg,#ffd54a,#ff8a3d);color:#111;cursor:pointer;min-width:260px}
+  .pauseInner button:active{transform:scale(.97)}
+  .pauseInner #stopBtn{background:linear-gradient(90deg,#dc2626,#ef4444);color:#fff}
+  .pauseInner .hint{font-size:11px;opacity:.5;letter-spacing:2px;margin-top:-2px}
+  #touch{position:fixed;inset:0;z-index:20;display:none;pointer-events:none}
+  #touch.on{display:block}
+  #touch.editing{background:rgba(0,0,0,0.15)}
+  #touch.editing .tctrl{outline:2px dashed rgba(255,213,74,.85);outline-offset:4px;cursor:move}
+  .tctrl{position:absolute;pointer-events:auto;touch-action:none}
+  .stick{width:130px;height:130px;border-radius:50%;border:2px solid rgba(255,255,255,.25);background:rgba(0,0,0,.2);transition:border-color .15s}
+  .stick.sprint{border-color:rgba(255,213,74,.9);box-shadow:0 0 12px rgba(255,213,74,.35)}
+  .knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:rgba(255,255,255,.28);border:2px solid rgba(255,255,255,.5);pointer-events:none;transition:background .12s,border-color .12s}
+  .stick.sprint .knob{background:rgba(255,213,74,.75);border-color:#ffd54a}
+  .btn{border-radius:50%;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;letter-spacing:.5px}
+  #bFire{width:92px;height:92px;background:rgba(255,60,60,.22);border-color:rgba(255,90,90,.6)}
+  #bScope{width:70px;height:70px;background:rgba(120,190,255,.2);border-color:rgba(120,190,255,.55);font-size:10px}
+  #bScope.active{background:rgba(120,190,255,.55);border-color:#7fbaff;color:#fff}
+  #bRel{width:62px;height:62px}
+  #bJump{width:62px;height:62px}
+  #bCrouch{width:62px;height:62px}
+  #bSwap{width:62px;height:62px}
+  #bHeal{width:62px;height:62px}
+  #bPick{width:70px;height:70px;background:rgba(255,213,74,.28);border-color:rgba(255,213,74,.75);display:none}
+  #bPick.on{display:flex}
+  #editBar{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);display:none;gap:8px;z-index:60;pointer-events:auto;background:rgba(0,0,0,.75);padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.2);box-shadow:0 8px 24px rgba(0,0,0,.5)}
+  #editBar.on{display:flex}
+  #editBar button{padding:10px 18px;font-size:13px;font-weight:800;letter-spacing:1px;border:none;border-radius:6px;background:rgba(255,255,255,.15);color:#fff;cursor:pointer}
+  #editBar button.primary{background:linear-gradient(90deg,#ffd54a,#ff8a3d);color:#111}
+  #editBar button:active{transform:scale(.96)}
+  #start{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%,#16212e,#070a0e);gap:14px;text-align:center;padding:20px;overflow-y:auto}
+  #scoreboard{position:absolute;top:14px;left:50%;transform:translateX(-50%);display:none;align-items:stretch;gap:8px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.16);border-radius:10px;overflow:hidden;min-width:280px;backdrop-filter:blur(6px)}
+  #scoreboard b{font-size:28px;line-height:1;font-variant-numeric:tabular-nums}
+  #scoreboard span{display:block;font-size:9px;letter-spacing:1.4px;opacity:.8}
+  .sb-blue,.sb-red{padding:8px 16px;min-width:74px;text-align:center}
+  .sb-blue{background:rgba(47,111,219,.45)} .sb-red{background:rgba(200,56,50,.45)}
+  .sb-mid{padding:6px 14px;text-align:center;min-width:92px}
+  #scoreTimer{font-size:18px;font-weight:800;letter-spacing:1px}
+  #scoreRule{display:block;font-size:9px;opacity:.65;letter-spacing:1px}
+  .step{width:28px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.08);color:#fff;font-size:18px;font-weight:800;line-height:1}
+  .step:disabled{opacity:.35}
+  #start h1{font-size:38px;letter-spacing:8px;font-weight:900;background:linear-gradient(90deg,#ffd54a,#ff7a3d);-webkit-background-clip:text;background-clip:text;color:transparent}
+  #start .sub{font-size:11px;opacity:.55;letter-spacing:2px;margin-bottom:6px}
+  #lobby{display:flex;flex-direction:column;gap:8px;width:min(520px,94vw);background:rgba(0,0,0,.4);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,.1)}
+  #roomPanel{display:none;flex-direction:column;gap:12px;border-top:1px solid rgba(255,255,255,.16);padding-top:14px;margin-top:8px;text-align:left}
+  #roomPanel.on{display:flex}
+  .room-heading{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .room-code{font-size:22px;font-weight:900;letter-spacing:4px;color:#ffd54a}
+  .room-sub{font-size:10px;opacity:.65;letter-spacing:1.2px;margin-top:3px}
+  .room-mini-btn{padding:8px 10px;border:1px solid #52606e;border-radius:5px;background:#1c2733;color:#fff;font-size:10px;font-weight:800;letter-spacing:1px}
+  #roomRoster{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .team-roster{border:1px solid rgba(255,255,255,.13);border-radius:7px;padding:10px;min-width:0}
+  .team-roster h3{font-size:11px;letter-spacing:1.5px;margin-bottom:8px}
+  .team-roster.blue h3{color:#77bdff}.team-roster.red h3{color:#ff8585}
+  .roster-slot{display:flex;justify-content:space-between;gap:6px;padding:6px 7px;margin-top:4px;background:rgba(255,255,255,.055);border-radius:4px;font-size:10px;overflow-wrap:anywhere}
+  .roster-slot.empty{opacity:.4;border:1px dashed rgba(255,255,255,.15);background:transparent}
+  .roster-slot.bot{color:#ffdca1}
+  #roomStartBtn{width:100%;padding:13px;border:0;border-radius:5px;background:linear-gradient(90deg,#ffd54a,#ff8a3d);color:#111;font-weight:900;letter-spacing:2px}
+  #roomStartBtn:disabled{opacity:.35}
+  #roomWait{font-size:11px;opacity:.7;text-align:center;min-height:14px}
+  .setting{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:700;letter-spacing:1px}
+  .setting label{width:120px;text-align:left;opacity:.85;font-size:11px}
+  .setting input[type=range]{flex:1;accent-color:#ffd54a}
+  .setting .val{width:32px;text-align:right;font-variant-numeric:tabular-nums;color:#ffd54a;font-size:11px}
+  .setting input[type=text]{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:8px 10px;color:#fff;font-size:14px;letter-spacing:3px;text-align:center;font-weight:800;text-transform:uppercase}
+  .teamPick{display:flex;gap:8px}
+  .teamBtn{padding:8px 16px;border:2px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);border-radius:6px;color:#fff;font-weight:800;font-size:11px;letter-spacing:1.5px;cursor:pointer}
+  .teamBtn.on[data-team="0"]{background:rgba(59,130,246,.4);border-color:#3b82f6}
+  .teamBtn.on[data-team="1"]{background:rgba(239,68,68,.4);border-color:#ef4444}
+  .lobbyDivider{display:flex;align-items:center;gap:8px;margin:4px 0;opacity:.4;font-size:10px;letter-spacing:2px;font-weight:800}
+  .lobbyDivider:before,.lobbyDivider:after{content:"";flex:1;height:1px;background:rgba(255,255,255,.2)}
+  .lobbyActions{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;justify-content:center}
+  .lobbyActions button{flex:1;min-width:110px;padding:12px 14px;font-size:13px;font-weight:800;letter-spacing:1.5px;border:none;border-radius:6px;cursor:pointer}
+  #createBtn{background:linear-gradient(90deg,#ffd54a,#ff8a3d);color:#111}
+  #joinBtn{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.25)}
+  #offlineBtn{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.18)}
+  .lobbyActions button:active{transform:scale(.97)}
+  #lobbyMsg{font-size:12px;opacity:.75;min-height:16px;letter-spacing:1px;color:#ffd54a}
+  #lootLegend{display:flex;gap:14px;justify-content:center;font-size:10px;letter-spacing:1px;margin-top:2px;opacity:.7}
+  #lootLegend span{display:flex;align-items:center;gap:4px}
+  #lootLegend .dot{width:10px;height:10px;border-radius:2px;display:inline-block}
+  #start .attr{font-size:10px;opacity:.35;letter-spacing:2px;margin-top:10px}
+</style>
+<link rel="stylesheet" href="/game/hud.css"></head>
+<body>
+<div id="start">
+  <h1>WAREHOUSE</h1>
+  <div class="sub">PUBG-STYLE TDM · BLUE vs RED · ALWAYS TWO TEAMS</div>
+  <div id="lobby">
+    <div class="lobbyDivider">BLUE TEAM</div>
+    <div class="setting"><label>BLUE PLAYERS</label><button class="step" type="button" data-step="bluePlayers" data-dir="-1" data-min="0" data-max="8">−</button><span class="val" id="val-bluePlayers">0</span><button class="step" type="button" data-step="bluePlayers" data-dir="1" data-min="0" data-max="8">+</button></div>
+    <div class="setting"><label>BLUE BOTS</label><button class="step" type="button" data-step="blueBots" data-dir="-1" data-min="0" data-max="12">−</button><span class="val" id="val-blueBots">0</span><button class="step" type="button" data-step="blueBots" data-dir="1" data-min="0" data-max="12">+</button></div>
+    <div class="lobbyDivider">RED TEAM</div>
+    <div class="setting"><label>RED PLAYERS</label><button class="step" type="button" data-step="redPlayers" data-dir="-1" data-min="0" data-max="8">−</button><span class="val" id="val-redPlayers">0</span><button class="step" type="button" data-step="redPlayers" data-dir="1" data-min="0" data-max="8">+</button></div>
+    <div class="setting"><label>RED BOTS</label><button class="step" type="button" data-step="redBots" data-dir="-1" data-min="0" data-max="12">−</button><span class="val" id="val-redBots">0</span><button class="step" type="button" data-step="redBots" data-dir="1" data-min="0" data-max="12">+</button></div>
+    <div class="lobbyDivider">YOU</div>
+    <div class="setting"><label>YOUR TEAM</label><div class="teamPick"><button class="teamBtn on" data-team="0">BLUE</button><button class="teamBtn" data-team="1">RED</button></div></div>
+    <div class="setting"><label>ROOM CODE</label><input type="text" id="setRoom" placeholder="AUTO" maxlength="6"></div>
+    <div class="lobbyActions">
+      <button id="createBtn">CREATE ROOM</button>
+      <button id="joinBtn">JOIN</button>
+      <button id="offlineBtn">OFFLINE</button>
+    </div>
+    <div id="lobbyMsg"></div>
+    <div id="roomPanel">
+      <div class="room-heading"><div><div class="room-sub">ROOM CODE · SHARE WITH FRIENDS</div><div class="room-code" id="roomCodeDisplay">------</div></div><button class="room-mini-btn" id="copyRoomBtn">COPY INVITE</button></div>
+      <div class="room-sub" id="roomStatus">Waiting for teammates…</div>
+      <div id="roomRoster">
+        <section class="team-roster blue"><h3>BLUE TEAM</h3><div id="blueRoster"></div></section>
+        <section class="team-roster red"><h3>RED TEAM</h3><div id="redRoster"></div></section>
+      </div>
+      <button id="roomStartBtn">START MATCH</button>
+      <div id="roomWait"></div>
+    </div>
+    <div id="lootLegend">
+      <span><span class="dot" style="background:#ffb347"></span>WEAPON</span>
+      <span><span class="dot" style="background:#6ec9ff"></span>AMMO</span>
+      <span><span class="dot" style="background:#fff;border:1px solid #ff2222"></span>MEDKIT</span>
+    </div>
+  </div>
+  <div class="attr">absolute ollie — built by ☠ SYSTEM BREACHED ☠</div>
+</div>
+
+<div id="ui">
+  <div id="scoreboard"><div class="sb-blue"><b id="scoreBlue">0</b><span>BLUE</span></div><div class="sb-mid"><div id="scoreTimer">8:00</div><small id="scoreRule">FIRST TO 40</small></div><div class="sb-red"><b id="scoreRed">0</b><span>RED</span></div></div>
+  <div id="vig"></div><div id="scope"><div class="optic-ring"><div class="reticle-h"></div><div class="reticle-v"></div><div class="reticle-dot"></div><div class="reticle-marks"></div></div><span id="optic-label"></span></div><div id="crosshair"></div><div id="hitmarker"></div>
+  <div id="minimap"><canvas id="mmc" width="256" height="256"></canvas></div>
+  <div id="alive">ALIVE 21</div>
+  <div id="teamBadge">TEAM</div>
+  <div id="killfeed"></div>
+  <div id="pickupToast"></div>
+  <div id="zone"><span class="t">ZONE</span> <span id="zoneTimer">--</span></div>
+  <div id="msg"></div>
+  <div id="prompt"></div>
+  <div id="bottom">
+    <div id="hpwrap"><div id="hpbar"><div id="hpfill"></div></div><div id="hptext">100 HP</div></div>
+    <div id="ammo"><div class="wname" id="wname">FISTS</div><div><span class="mag" id="mag">0</span><span class="res"> / <span id="res">0</span></span></div><div id="slots"><div class="s on" id="s0">—</div><div class="s" id="s1">—</div></div></div>
+  </div>
+</div>
+
+<div id="hudTopLeft"><button class="utilBtn" id="btnPerspective" title="Change perspective (V)">TPP</button><button class="utilBtn" id="btnBackpack" title="Open backpack (B)">BAG <span id="backpack-count">4</span></button><button class="utilBtn" id="btnSwapDesktop" title="Switch main weapon (Q)">SWAP</button><button class="utilBtn" id="btnSettings" title="Settings">SET</button>
+  <div class="utilBtn" id="btnFullscreen" title="Fullscreen"><svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg></div>
+  <div class="utilBtn" id="btnPause" title="Pause"><svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg></div>
+  <div class="utilBtn" id="btnLayout" title="Customize layout" style="display:none"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg></div>
+</div>
+
+<div id="pauseScreen">
+  <div class="pauseInner">
+    <h2>STAND BY.</h2>
+    <button id="resumeBtn">RESUME</button>
+    <button id="stopBtn">RETURN TO LOBBY</button>
+    <div class="hint">YOUR NEXT MOVE IS UP TO YOU</div>
+  </div>
+</div>
+
+<div id="touch">
+  <div class="stick tctrl" id="stkL" data-id="stkL"><div class="knob" id="knbL"></div></div>
+  <div class="btn tctrl" id="bFire" data-id="bFire">FIRE</div>
+  <div class="btn tctrl" id="bScope" data-id="bScope">SCOPE</div>
+  <div class="btn tctrl" id="bRel" data-id="bRel">R</div>
+  <div class="btn tctrl" id="bJump" data-id="bJump">JMP</div>
+  <div class="btn tctrl" id="bCrouch" data-id="bCrouch">CRCH</div>
+  <div class="btn tctrl" id="bSwap" data-id="bSwap">SWAP</div>
+  <div class="btn tctrl" id="bHeal" data-id="bHeal">HEAL</div>
+  <div class="btn tctrl" id="bPick" data-id="bPick">PICK</div>
+</div>
+
+<div id="editBar">
+  <button id="editReset">RESET</button>
+  <button id="editCancel">CANCEL</button>
+  <button id="editSave" class="primary">SAVE</button>
+</div>
+
+<div id="desktopHints"><span><b>W A S D</b> MOVE</span><span><b>F</b> PICK UP</span><span><b>R</b> RELOAD</span><span><b>RMB</b> AIM</span><span><b>V</b> PERSPECTIVE</span><span><b>B</b> BACKPACK</span></div>
+<script>window.addEventListener('error',event=>{parent.postMessage({source:'erangel-game',type:'error',message:event.message.includes('WebGL')?'WebGL is unavailable. Enable hardware acceleration and try again.':'The battleground could not initialize. Please reload and try again.'},location.origin);});</script>
+<script type="module" src="/game/engine.js"></script></body></html>

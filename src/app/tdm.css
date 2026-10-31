@@ -1,0 +1,187 @@
+.app.tdm-lobby {
+  height: auto;
+  min-height: 100svh;
+  overflow: auto;
+}
+.app.tdm-lobby.in-match {
+  height: 100svh;
+  min-height: 100svh;
+  overflow: hidden;
+}
+.app.tdm-lobby .lobby-main {
+  min-height: calc(100svh - 150px);
+  padding-bottom: 280px;
+}
+.command-deck {
+  position: relative;
+  z-index: 3;
+  margin: 0 3.6% 28px;
+  display: grid;
+  grid-template-columns: 280px 1fr 300px;
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid rgba(224, 230, 211, 0.16);
+  background: linear-gradient(180deg, rgba(12, 16, 14, 0.78), rgba(8, 10, 9, 0.88));
+  backdrop-filter: blur(10px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+}
+.map-card,
+.team-board,
+.launch-card {
+  min-width: 0;
+}
+.map-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+  padding: 0;
+}
+.map-card .map-thumbnail {
+  width: 100%;
+  height: 132px;
+}
+.map-card .map-thumbnail .tactical-map {
+  transform: none;
+  opacity: 1;
+}
+.map-kicker {
+  color: var(--amber);
+  letter-spacing: 1.8px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.team-board {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.team-col {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.team-col.blue { box-shadow: inset 3px 0 0 #3b82f6; }
+.team-col.red { box-shadow: inset 3px 0 0 #ef4444; }
+.team-col h3 {
+  font-family: "Barlow Condensed", sans-serif;
+  letter-spacing: 1.6px;
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+.team-col.blue h3 { color: #8ebfff; }
+.team-col.red h3 { color: #ff9d97; }
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
+.stepper span {
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  color: #c9cec2;
+}
+.stepper strong {
+  min-width: 28px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 18px;
+}
+.stepper button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(232, 178, 89, 0.45);
+  color: #f3e7cf;
+  font-size: 20px;
+  line-height: 1;
+}
+.stepper button:disabled { opacity: 0.35; }
+.rules-row {
+  display: flex;
+  gap: 16px;
+  grid-column: 1 / -1;
+  color: #b7bdae;
+  font-size: 12px;
+}
+.launch-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.team-pick {
+  display: flex;
+  gap: 8px;
+}
+.team-pick button {
+  flex: 1;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  letter-spacing: 1px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.team-pick button.on-blue { background: rgba(59, 130, 246, 0.35); color: #fff; }
+.team-pick button.on-red { background: rgba(239, 68, 68, 0.38); color: #fff; }
+.launch-card .deploy-button { height: 58px; }
+.ghost-button, .join-button {
+  height: 42px;
+  border: 1px solid rgba(232, 178, 89, 0.4);
+  letter-spacing: 1.4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.join-row {
+  display: flex;
+  gap: 8px;
+}
+.join-row input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fff;
+  padding: 0 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.hint {
+  color: #a7ad9f;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.room-live {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.room-code-lg {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 42px;
+  letter-spacing: 6px;
+  color: var(--amber);
+  line-height: 1;
+}
+.roster-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.roster-grid section {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 8px;
+  min-height: 88px;
+}
+.roster-grid h4 { font-size: 11px; letter-spacing: 1px; margin-bottom: 6px; }
+.roster-grid .blue h4 { color: #8ebfff; }
+.roster-grid .red h4 { color: #ff9d97; }
+.roster-grid li { font-size: 12px; list-style: none; padding: 3px 0; }
+.invite-link {
+  font-size: 11px;
+  color: #d7dece;
+  word-break: break-all;
+}
+@media (max-width: 1100px) {
+  .command-deck { grid-template-columns: 1fr; }
+  .app.tdm-lobby .lobby-main { padding-bottom: 40px; }
+}
